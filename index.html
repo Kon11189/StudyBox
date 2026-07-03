@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>StudyBox | Всё для учёбы</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        html, body {
+            height: 100%; overflow: hidden; position: fixed; width: 100%;
+            background: #0a0a0e; color: #e0e0e0;
+            font-family: 'Inter', sans-serif; font-weight: 400;
+            -webkit-font-smoothing: antialiased; overscroll-behavior: none;
+        }
+        #root {
+            height: 100%; overflow-y: auto; overflow-x: hidden;
+            scroll-snap-type: y mandatory;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+        }
+        #root.disable-snap { scroll-snap-type: none !important; }
+
+        .t-container { max-width: 1200px; margin: 0 auto; padding: 0 20px; width: 100%; }
+        h1, h2, h3 { font-family: 'Montserrat', sans-serif; font-weight: 700; letter-spacing: -0.3px; color: #fff; }
+
+        /* ===== ПРЕЛОАДЕР ===== */
+        .preloader {
+            position: fixed; inset: 0; z-index: 9999; background: #0a0a0e;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.8s ease, visibility 0.8s ease;
+        }
+        .preloader.hidden { opacity: 0; visibility: hidden; }
+        .preloader-logo { font-size: 32px; font-weight: 500; color: #fff; letter-spacing: -0.5px; margin-bottom: 24px; font-family: 'Montserrat', sans-serif; }
+        .progress-container { width: 160px; height: 3px; background: rgba(255, 255, 255, 0.08); border-radius: 4px; overflow: hidden; }
+        .progress-bar { width: 0%; height: 100%; background: #fff; border-radius: 4px; animation: loadingBar 1.2s cubic-bezier(0.77, 0, 0.175, 1) forwards; }
+        @keyframes loadingBar { 0% { width: 0%; } 100% { width: 100%; } }
+
+        /* ===== ШАПКА ===== */
+        .t446 {
+            position: fixed; top: 0; left: 0; width: 100%; z-index: 200; padding: 14px 20px;
+            background: transparent; transition: background 0.4s ease, backdrop-filter 0.4s ease; pointer-events: none;
+        }
+        .t446.scrolled {
+            background: rgba(10, 10, 14, 0.82); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+        }
+        .t446__container { display: flex; align-items: center; justify-content: center; pointer-events: auto; }
+        .t446__logo { font-size: 24px; font-family: 'Montserrat', sans-serif; font-weight: 300; color: #fff; text-decoration: none; letter-spacing: -0.5px; transition: color 0.3s; }
+        .t446.scrolled .t446__logo { color: #ccc; }
+
+        /* ===== ЛОГИКА ПРИМАГНИЧИВАНИЯ ===== */
+        .snap-block {
+            min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; width: 100%; position: relative;
+        }
+
+        .snap-start {
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+        }
+
+        .free-scroll-zone {
+            width: 100%;
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+        }
+
+        /* ===== ГЕРОЙ ===== */
+        .hero { background: #0a0a0e; justify-content: center; }
+        .hero-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.2); backdrop-filter: blur(1px); }
+        .hero-content { position: relative; z-index: 10; text-align: center; max-width: 800px; padding: 0 16px; opacity: 0; transform: translateY(30px); animation: heroFade 1s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes heroFade { to { opacity: 1; transform: translateY(0); } }
+        .hero-title-main { font-size: clamp(34px, 7vw, 64px); line-height: 1.12; margin-bottom: 28px; text-shadow: 0 4px 30px rgba(0,0,0,0.2); }
+        .hero-title-main .accent { color: #888; }
+        .btn-glass {
+            display: inline-block; background: rgba(255,255,255,0.04); backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.08); color: #fff; border-radius: 60px; padding: 14px 44px;
+            font-size: 17px; font-weight: 500; text-decoration: none; transition: all 0.4s ease; cursor: pointer;
+        }
+        .btn-glass:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2); transform: translateY(-3px) scale(1.02); }
+        .scroll-indicator { position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%); z-index: 20; display: flex; flex-direction: column; align-items: center; color: rgba(255,255,255,0.3); font-size: 12px; opacity: 0; animation: fadeIn 2s ease forwards; }
+        .scroll-indicator .chevron { width: 22px; height: 11px; fill: none; stroke: rgba(255,255,255,0.2); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; animation: bounce 2.2s infinite; }
+        @keyframes fadeIn { to { opacity: 1; } } @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(6px); } }
+
+        /* ===== О НАС ===== */
+        .about {
+            background: #0e0e12;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+        .about .t-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+        }
+        .about-card {
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.015);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.02);
+            border-radius: 40px;
+            padding: 40px 36px;
+            transition: transform 0.5s ease;
+        }
+        .about-card:hover { transform: translateY(-4px); }
+        .about-card h2 { font-size: 36px; margin-bottom: 20px; color: #ccc; text-align: center; font-weight: 300; }
+        .about-card p { font-size: 17px; color: #888; line-height: 1.8; text-align: center; font-weight: 300; }
+
+        /* ===== ИНСТРУМЕНТЫ ===== */
+        .tools { background: #0a0a0e; padding: 100px 0 60px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+        .tools-header { text-align: center; margin-bottom: 50px; width: 100%; padding: 0 16px; }
+        .tools-header h2 { font-size: 36px; color: #fff; font-weight: 300; }
+        .tools-header p { color: #555; font-size: 16px; margin-top: 8px; font-weight: 300; }
+        .tools-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; width: 100%; max-width: 1200px; padding: 0 20px; }
+        @media (max-width: 992px) { .tools-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 576px) { .tools-grid { grid-template-columns: 1fr; } }
+
+        .tool-card {
+            background: rgba(255,255,255,0.015); border: 1px solid rgba(255,255,255,0.03); border-radius: 28px;
+            overflow: hidden; transition: all 0.5s ease; backdrop-filter: blur(4px); box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            display: flex; flex-direction: column; opacity: 0; transform: translateY(30px); animation: cardAppear 0.7s ease forwards;
+        }
+        .tool-card:nth-child(1) { animation-delay: 0.05s; } .tool-card:nth-child(2) { animation-delay: 0.1s; } .tool-card:nth-child(3) { animation-delay: 0.15s; }
+        .tool-card:nth-child(4) { animation-delay: 0.2s; } .tool-card:nth-child(5) { animation-delay: 0.25s; } .tool-card:nth-child(6) { animation-delay: 0.3s; }
+        @keyframes cardAppear { to { opacity: 1; transform: translateY(0); } }
+        .tool-card:hover { transform: translateY(-6px); border-color: rgba(255,255,255,0.06); box-shadow: 0 20px 50px rgba(0,0,0,0.4); }
+
+        .tool-image { aspect-ratio: 1.2/1; display: flex; align-items: center; justify-content: center; font-size: 56px; background: rgba(255,255,255,0.02); border-bottom: 1px solid rgba(255,255,255,0.02); cursor: pointer; transition: background 0.3s; }
+        .tool-image:hover { background: rgba(255,255,255,0.04); }
+        .tool-image .emoji-big { transition: transform 0.4s ease; }
+        .tool-image:hover .emoji-big { transform: scale(1.05) rotate(-2deg); }
+
+        .tool-description { max-height: 0; overflow: hidden; transition: all 0.4s ease; background: rgba(255,255,255,0.02); padding: 0 18px; opacity: 0; color: #aaa; font-size: 15px; line-height: 1.6; font-weight: 300; }
+        .tool-description.open { max-height: 200px; padding: 16px 18px; opacity: 1; }
+
+        .tool-info { padding: 20px 18px; flex-grow: 1; display: flex; flex-direction: column; }
+        .tool-title { font-size: 20px; font-weight: 500; font-family: 'Montserrat', sans-serif; color: #fff; margin-bottom: 6px; }
+        .tool-sub { font-size: 14px; font-weight: 300; color: #666; margin-bottom: 24px; }
+
+        /* ===== SLIDE TO UNLOCK ===== */
+        .slider-track {
+            position: relative; width: 100%; height: 50px; background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 40px; margin-top: auto;
+            display: flex; align-items: center; overflow: hidden;
+            transition: background 0.3s ease, border-color 0.3s ease;
+        }
+        .slider-text {
+            position: absolute; width: 100%; text-align: center; font-size: 14px; color: #888;
+            pointer-events: none; transition: opacity 0.3s ease; user-select: none; font-weight: 400;
+        }
+        .slider-thumb {
+            position: absolute; left: 5px; width: 40px; height: 40px; background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.1); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; cursor: grab;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.3s ease;
+            z-index: 2; color: #fff;
+        }
+        .slider-thumb svg { width: 18px; height: 18px; transition: transform 0.3s ease; }
+        .slider-thumb.dragging { transition: none; cursor: grabbing; background: rgba(255,255,255,0.2); }
+
+        .slider-track.success { background: rgba(76, 175, 80, 0.15); border-color: rgba(76, 175, 80, 0.4); }
+        .slider-track.success .slider-text { opacity: 0; }
+        .slider-track.success .slider-thumb { background: #4caf50; border-color: #4caf50; }
+        .slider-track.success .slider-thumb svg { transform: scale(1.2); }
+
+        /* ===== ФУТЕР ===== */
+        .bottom { background: #0e0e12; border-top: 1px solid rgba(255,255,255,0.02); padding: 60px 20px; display: flex; flex-direction: column; align-items: center; }
+        .bottom .social-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; margin-bottom: 30px; }
+        .bottom .social-btn { display: inline-flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.015); border: 1px solid rgba(255,255,255,0.02); border-radius: 40px; padding: 12px 24px; font-size: 15px; color: #aaa; text-decoration: none; transition: all 0.3s; }
+        .bottom .social-btn:hover { background: rgba(255,255,255,0.03); transform: translateY(-2px); }
+        .bottom .footer-text { color: #444; font-size: 12px; text-align: center; line-height: 1.7; font-weight: 300; }
+        .back-to-top { position: fixed; bottom: 20px; right: 20px; background: rgba(255,255,255,0.015); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.02); color: #aaa; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; text-decoration: none; z-index: 99; transition: all 0.3s; opacity: 0; visibility: hidden; transform: scale(0.8); font-size: 20px; }
+        .back-to-top.visible { opacity: 1; visibility: visible; transform: scale(1); }
+        .scroll-reveal { opacity: 0; transform: translateY(24px); transition: all 0.8s ease; }
+        .scroll-reveal.revealed { opacity: 1; transform: translateY(0); }
+
+        @media (max-width: 480px) { .tools-grid { gap: 16px; } .tool-image { font-size: 44px; } .tool-title { font-size: 17px; } .slider-track { height: 46px; } .slider-thumb { width: 36px; height: 36px; } }
+    </style>
+</head>
+<body>
+
+    <!-- ПРЕЛОАДЕР -->
+    <div class="preloader" id="preloader">
+        <div class="preloader-logo">StudyBox</div>
+        <div class="progress-container"><div class="progress-bar"></div></div>
+    </div>
+
+    <div id="root">
+        <!-- ШАПКА -->
+        <div class="t446" id="header">
+            <div class="t446__container">
+                <a href="/" class="t446__logo">StudyBox.top</a>
+            </div>
+        </div>
+
+        <!-- ГЕРОЙ -->
+        <section class="snap-block snap-start hero">
+            <div class="hero-overlay"></div>
+            <div class="hero-content">
+                <h1 class="hero-title-main">
+                    StudyBox <span class="accent">—</span><br>
+                    Всё для учёбы.<br>
+                    В одном месте.
+                </h1>
+                <a href="#tools" class="btn-glass" onclick="smoothScrollToTools(event)">Начать</a>
+            </div>
+            <div class="scroll-indicator">
+                <span>Листайте вниз</span>
+                <svg class="chevron" viewBox="0 0 24 24"><path d="M4 8l8 8 8-8" /></svg>
+            </div>
+        </section>
+
+        <!-- О НАС -->
+        <div class="snap-block snap-start about scroll-reveal">
+            <div class="t-container">
+                <div class="about-card">
+                    <h2>О нас</h2>
+                    <p>StudyBox — это современная образовательная AI-платформа, объединяющая всё необходимое для успешной учёбы в одном месте. Создавайте презентации, конспекты, пересказы и рефераты за считанные минуты, используйте интеллектуального помощника и получайте понятные объяснения по любым темам.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ЗОНА СВОБОДНОГО СКРОЛЛА -->
+        <div class="free-scroll-zone">
+
+            <!-- ИНСТРУМЕНТЫ -->
+            <div id="tools" class="tools scroll-reveal">
+                <div class="tools-header">
+                    <h2>Инструменты</h2>
+                    <p>Всё, что нужно для учёбы — в одном месте</p>
+                </div>
+                <div class="tools-grid">
+
+                    <!-- Карточка 1 -->
+                    <div class="tool-card">
+                        <div class="tool-image" onclick="this.nextElementSibling.classList.toggle('open')"><span class="emoji-big">🧠</span></div>
+                        <div class="tool-description">Задайте вопрос — получите понятное объяснение с примерами. Работает 24/7.</div>
+                        <div class="tool-info">
+                            <div class="tool-title">AI-ассистент</div>
+                            <div class="tool-sub">Мгновенные ответы на вопросы</div>
+                            <div class="slider-track" data-href="ai-assistant.html">
+                                <div class="slider-text">Свайпните для перехода</div>
+                                <div class="slider-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Карточка 2 -->
+                    <div class="tool-card">
+                        <div class="tool-image" onclick="this.nextElementSibling.classList.toggle('open')"><span class="emoji-big">📊</span></div>
+                        <div class="tool-description">Выберите тему — AI соберёт структуру и дизайн за минуты.</div>
+                        <div class="tool-info">
+                            <div class="tool-title">Презентации</div>
+                            <div class="tool-sub">Стильные презентации за минуты</div>
+                            <div class="slider-track" data-href="presentations.html">
+                                <div class="slider-text">Свайпните для перехода</div>
+                                <div class="slider-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Карточка 3 -->
+                    <div class="tool-card">
+                        <div class="tool-image" onclick="this.nextElementSibling.classList.toggle('open')"><span class="emoji-big">📝</span></div>
+                        <div class="tool-description">Превратите лекции в краткие конспекты с ключевыми мыслями.</div>
+                        <div class="tool-info">
+                            <div class="tool-title">Конспекты</div>
+                            <div class="tool-sub">Структурирование текста</div>
+                            <div class="slider-track" data-href="notes.html">
+                                <div class="slider-text">Свайпните для перехода</div>
+                                <div class="slider-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Карточка 4 -->
+                    <div class="tool-card">
+                        <div class="tool-image" onclick="this.nextElementSibling.classList.toggle('open')"><span class="emoji-big">🔄</span></div>
+                        <div class="tool-description">Адаптированная версия материала для лёгкого запоминания.</div>
+                        <div class="tool-info">
+                            <div class="tool-title">Пересказы</div>
+                            <div class="tool-sub">Переформулирование текстов</div>
+                            <div class="slider-track" data-href="retellings.html">
+                                <div class="slider-text">Свайпните для перехода</div>
+                                <div class="slider-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Карточка 5 -->
+                    <div class="tool-card">
+                        <div class="tool-image" onclick="this.nextElementSibling.classList.toggle('open')"><span class="emoji-big">📄</span></div>
+                        <div class="tool-description">AI соберёт информацию и оформит реферат по вашим требованиям.</div>
+                        <div class="tool-info">
+                            <div class="tool-title">Рефераты</div>
+                            <div class="tool-sub">Уникальные рефераты по теме</div>
+                            <div class="slider-track" data-href="essays.html">
+                                <div class="slider-text">Свайпните для перехода</div>
+                                <div class="slider-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Карточка 6 -->
+                    <div class="tool-card">
+                        <div class="tool-image" onclick="this.nextElementSibling.classList.toggle('open')"><span class="emoji-big">💡</span></div>
+                        <div class="tool-description">Разложим любую сложную тему на простые составляющие.</div>
+                        <div class="tool-info">
+                            <div class="tool-title">Объяснения</div>
+                            <div class="tool-sub">Понятные разборы сложных тем</div>
+                            <div class="slider-track" data-href="explanations.html">
+                                <div class="slider-text">Свайпните для перехода</div>
+                                <div class="slider-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ФУТЕР -->
+            <div class="bottom scroll-reveal">
+                <div class="social-row">
+                    <a href="#" class="social-btn" target="_blank">Instagram</a>
+                    <a href="#" class="social-btn" target="_blank">Telegram</a>
+                    <a href="#" class="social-btn" target="_blank">Facebook</a>
+                </div>
+                <div class="footer-text">
+                    © StudyBox, 2026<br>Образовательная AI-платформа<br>Все права защищены.
+                </div>
+            </div>
+
+        </div>
+
+        <a href="#" class="back-to-top" id="backToTop">↑</a>
+    </div>
+
+    <script>
+        // ===== ПРЕЛОАДЕР =====
+        window.addEventListener('load', () => setTimeout(() => document.getElementById('preloader').classList.add('hidden'), 1300));
+
+        const root = document.getElementById('root');
+
+        // ===== ПЛАВНЫЙ ПОЛЕТ СКВОЗЬ БЛОКИ =====
+        function smoothScrollToTools(e) {
+            e.preventDefault();
+            const target = document.querySelector('.free-scroll-zone');
+            root.classList.add('disable-snap');
+            target.scrollIntoView({ behavior: 'smooth' });
+            let scrollTimeout;
+            const scrollHandler = () => {
+                clearTimeout(scrollTimeout);
+                scrollTimeout = setTimeout(() => {
+                    root.classList.remove('disable-snap');
+                    root.removeEventListener('scroll', scrollHandler);
+                }, 150);
+            };
+            root.addEventListener('scroll', scrollHandler);
+            scrollHandler();
+        }
+
+        // ===== ХЕДЕР & BACK TO TOP =====
+        const header = document.getElementById('header');
+        const backToTop = document.getElementById('backToTop');
+        root.addEventListener('scroll', function() {
+            header.classList.toggle('scrolled', root.scrollTop > 60);
+            backToTop.classList.toggle('visible', root.scrollTop > window.innerHeight / 2);
+        }, { passive: true });
+
+        backToTop.addEventListener('click', function(e) {
+            e.preventDefault();
+            root.classList.add('disable-snap');
+            root.scrollTo({ top: 0, behavior: 'smooth' });
+            let scrollTimeout;
+            const scrollHandler = () => {
+                clearTimeout(scrollTimeout);
+                scrollTimeout = setTimeout(() => { root.classList.remove('disable-snap'); root.removeEventListener('scroll', scrollHandler); }, 150);
+            };
+            root.addEventListener('scroll', scrollHandler);
+            scrollHandler();
+        });
+
+        // ===== АНИМАЦИЯ ПРИ СКРОЛЛЕ =====
+        const revealEls = document.querySelectorAll('.scroll-reveal');
+        const obs = new IntersectionObserver((entries) => {
+            entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('revealed'); obs.unobserve(e.target); } });
+        }, { root: root, threshold: 0.08 });
+        revealEls.forEach(el => obs.observe(el));
+
+        // ===== СЛАЙДЕР "SLIDE TO UNLOCK" =====
+        document.querySelectorAll('.slider-track').forEach(track => {
+            const thumb = track.querySelector('.slider-thumb');
+            const url = track.getAttribute('data-href');
+            let isDragging = false, startX = 0, currentX = 0, maxTravel = 0;
+
+            const startDrag = (e) => {
+                isDragging = true;
+                thumb.classList.add('dragging');
+                startX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+                maxTravel = track.clientWidth - thumb.clientWidth - 10;
+            };
+
+            const onDrag = (e) => {
+                if (!isDragging) return;
+                if(e.cancelable) e.preventDefault();
+
+                let clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+                let walk = clientX - startX;
+                currentX = Math.max(0, Math.min(walk, maxTravel));
+                thumb.style.transform = `translateX(${currentX}px)`;
+            };
+
+            const stopDrag = () => {
+                if (!isDragging) return;
+                isDragging = false;
+                thumb.classList.remove('dragging');
+
+                if (currentX >= maxTravel * 0.8) {
+                    track.classList.add('success');
+                    thumb.style.transform = `translateX(${maxTravel}px)`;
+
+                    setTimeout(() => {
+                        window.location.href = url;
+                        setTimeout(() => {
+                            track.classList.remove('success');
+                            thumb.style.transform = `translateX(0px)`;
+                            currentX = 0;
+                        }, 500);
+                    }, 300);
+                } else {
+                    thumb.style.transform = `translateX(0px)`;
+                    currentX = 0;
+                }
+            };
+
+            thumb.addEventListener('mousedown', startDrag);
+            thumb.addEventListener('touchstart', startDrag, {passive: true});
+
+            window.addEventListener('mousemove', onDrag);
+            window.addEventListener('touchmove', onDrag, {passive: false});
+            window.addEventListener('mouseup', stopDrag);
+            window.addEventListener('touchend', stopDrag);
+        });
+    </script>
+</body>
+</html>
